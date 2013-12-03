@@ -1,6 +1,5 @@
 package feathers.controls
 {
-	import com.junkbyte.console.Cc;
 	import feathers.core.FeathersControl;
 	import feathers.core.IFocusDisplayObject;
 	import feathers.core.PropertyProxy;
@@ -17,21 +16,21 @@ package feathers.controls
 	 */
 	
 	/**
-	 * Dispatched when the slider's value changes.
+	 * Dispatched when the slider's values changes.
 	 *
 	 * @eventType starling.events.Event.CHANGE
 	 */
 	[Event(name="change",type="starling.events.Event")]
 	
 	/**
-	 * Dispatched when the user starts dragging the slider's thumb or track.
+	 * Dispatched when the user starts dragging one of the slider's thumbs.
 	 *
 	 * @eventType feathers.events.FeathersEventType.BEGIN_INTERACTION
 	 */
 	[Event(name="beginInteraction",type="starling.events.Event")]
 	
 	/**
-	 * Dispatched when the user stops dragging the slider's thumb or track.
+	 * Dispatched when the user stops dragging one of the slider's thumbs.
 	 *
 	 * @eventType feathers.events.FeathersEventType.END_INTERACTION
 	 */
@@ -44,10 +43,12 @@ package feathers.controls
 		public static const SLIDER_MODE_LOCK:uint = 2;
 		
 		public static const DEFAULT_CHILD_NAME_BACKGROUND:String = "feathers-range-slider-background";
+		public static const DEFAULT_CHILD_NAME_RANGE:String = "feathers-range-slider-range";
 		public static const DEFAULT_CHILD_NAME_MINIMUM_THUMB:String = "feathers-range-slider-minimum-thumb";
 		public static const DEFAULT_CHILD_NAME_MAXIMUM_THUMB:String = "feathers-range-slider-maximum-thumb";
 		
 		protected static const INVALIDATION_FLAG_BACKGROUND_FACTORY:String = "backgroundFactory";
+		protected static const INVALIDATION_FLAG_RANGE_FACTORY:String = "rangeFactory";
 		protected static const INVALIDATION_FLAG_MINIMUM_THUMB_FACTORY:String = "mimiumThumbFactory";
 		protected static const INVALIDATION_FLAG_MAXIMUM_THUMB_FACTORY:String = "maximumThumbFactory";
 		
@@ -59,6 +60,11 @@ package feathers.controls
 		}
 		
 		protected static function defaultBackgroundFactory():Button
+		{
+			return new Button();
+		}
+		
+		protected static function defaultRangeFactory():Button
 		{
 			return new Button();
 		}
@@ -85,10 +91,12 @@ package feathers.controls
 		protected var _maximumTouchStart:Point;
 		
 		protected var _backgroundFactory:Function;
+		protected var _rangeFactory:Function;
 		protected var _minimumThumbFactory:Function;
 		protected var _maximumThumbFactory:Function;
 		
 		protected var _background:Button;
+		protected var _range:Button;
 		protected var _minimumThumb:Button;
 		protected var _maximumThumb:Button;
 		
@@ -98,10 +106,12 @@ package feathers.controls
 		protected var _backgroundProperties:PropertyProxy;
 		
 		protected var _backgroundName:String = DEFAULT_CHILD_NAME_BACKGROUND;
+		protected var _rangeName:String = DEFAULT_CHILD_NAME_BACKGROUND;
 		protected var _minimumThumbName:String = DEFAULT_CHILD_NAME_MINIMUM_THUMB;
 		protected var _maximumThumbName:String = DEFAULT_CHILD_NAME_MAXIMUM_THUMB;
 		
 		protected var _customBackgroundName:String;
+		protected var _customRangeName:String;
 		protected var _customMinimumThumbName:String;
 		protected var _customMaximumThumbName:String;
 		
@@ -130,11 +140,15 @@ package feathers.controls
 		{
 			const stylesInvalid:Boolean = isInvalid(INVALIDATION_FLAG_STYLES);
 			const backgroundInvalid:Boolean = isInvalid(INVALIDATION_FLAG_BACKGROUND_FACTORY);
+			const rangeInvalid:Boolean = isInvalid(INVALIDATION_FLAG_RANGE_FACTORY);
 			const thumbMinimumFactoryInvalid:Boolean = isInvalid(INVALIDATION_FLAG_MINIMUM_THUMB_FACTORY);
 			const thumbMaximumFactoryInvalid:Boolean = isInvalid(INVALIDATION_FLAG_MAXIMUM_THUMB_FACTORY);
 			
 			if (backgroundInvalid)
 				createBackground();
+				
+			if (rangeInvalid)
+				createRange();
 			
 			if (thumbMaximumFactoryInvalid)
 				_maximumThumb = createThumb(_maximumThumb, _maximumThumbFactory, _maximumThumbName, _customMaximumThumbName);
@@ -163,6 +177,21 @@ package feathers.controls
 			_background.nameList.add(backgroundName);
 			_background.keepDownStateOnRollOut = true;
 			addChild(_background);
+		}
+		
+		protected function createRange():void
+		{
+			if (_range)
+			{
+				_range.removeFromParent(true);
+				_range = null;
+			}
+			const factory:Function = _rangeFactory != null ? _rangeFactory : defaultRangeFactory;
+			const rangeName:String = _customRangeName != null ? _customRangeName : _rangeName;
+			_range = Button(factory());
+			_range.nameList.add(rangeName);
+			_range.keepDownStateOnRollOut = true;
+			addChild(_range);
 		}
 		
 		protected function createThumb(thumb:Button, thumbFactory:Function, defaultName:String, customName:String):Button
@@ -316,7 +345,7 @@ package feathers.controls
 			const trackScrollableWidth:Number = actualWidth - _maximumThumb.width - _minimumPadding - _maximumPadding;
 			var overlappingOffset:Number = 0;
 			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
-				overlappingOffset = (trackScrollableWidth - location.x + _maximumThumb.width) / trackScrollableWidth * _minimumThumb.width;			
+				overlappingOffset = (trackScrollableWidth - location.x + _maximumThumb.width) / trackScrollableWidth * _minimumThumb.width;
 			const xOffset:Number = location.x - _maximumTouchStart.x - _minimumPadding - overlappingOffset;
 			const xPosition:Number = Math.min(Math.max(0, _maximumThumbStart.x + xOffset), trackScrollableWidth);
 			const percentage:Number = xPosition / trackScrollableWidth;
@@ -345,7 +374,15 @@ package feathers.controls
 				_background.height = actualHeight;
 			}
 			
-			layoutThumbs();
+			layoutThumbs();		
+			
+			if (_range)
+			{
+				_range.x = _minimumThumb.x + _minimumThumb.width;
+				_range.y = (actualHeight - _range.height) / 2;				
+				_range.width = _maximumThumb.x - _minimumThumb.x - _minimumThumb.width;
+				_range.height = _background.height;				
+			}
 		}
 		
 		protected function layoutThumbs():void
