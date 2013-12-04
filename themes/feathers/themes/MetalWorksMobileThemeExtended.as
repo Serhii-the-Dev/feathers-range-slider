@@ -21,7 +21,8 @@ package feathers.themes
 		{
 			super.setInitializers();
 			setInitializerForClass(RangeSlider, rangeSliderInitializer);
-			setInitializerForClass(Button, dangerButtonInitializer, RangeSlider.DEFAULT_CHILD_NAME_MINIMUM_THUMB);			
+			setInitializerForClass(Button, dangerButtonInitializer, RangeSlider.DEFAULT_CHILD_NAME_MINIMUM_THUMB);
+			setInitializerForClass(Button, callToActionButtonInitializer, RangeSlider.DEFAULT_CHILD_NAME_MIDDLE_THUMB);
 		}
 		
 		protected function rangeSliderInitializer(slider:RangeSlider):void

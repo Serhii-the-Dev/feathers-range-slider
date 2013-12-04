@@ -1,9 +1,11 @@
 package feathers.controls
 {
+	import com.junkbyte.console.Cc;
 	import feathers.core.FeathersControl;
 	import feathers.core.IFocusDisplayObject;
 	import feathers.core.PropertyProxy;
 	import feathers.events.FeathersEventType;
+	import feathers.utils.math.roundToNearest;
 	import flash.geom.Point;
 	import starling.events.Event;
 	import starling.events.Touch;
@@ -43,12 +45,12 @@ package feathers.controls
 		public static const SLIDER_MODE_LOCK:uint = 2;
 		
 		public static const DEFAULT_CHILD_NAME_BACKGROUND:String = "feathers-range-slider-background";
-		public static const DEFAULT_CHILD_NAME_RANGE:String = "feathers-range-slider-range";
+		public static const DEFAULT_CHILD_NAME_MIDDLE_THUMB:String = "feathers-range-slider-middle-thumb";
 		public static const DEFAULT_CHILD_NAME_MINIMUM_THUMB:String = "feathers-range-slider-minimum-thumb";
 		public static const DEFAULT_CHILD_NAME_MAXIMUM_THUMB:String = "feathers-range-slider-maximum-thumb";
 		
 		protected static const INVALIDATION_FLAG_BACKGROUND_FACTORY:String = "backgroundFactory";
-		protected static const INVALIDATION_FLAG_RANGE_FACTORY:String = "rangeFactory";
+		protected static const INVALIDATION_FLAG_MIDDLE_THUMB_FACTORY:String = "middleThumbFactory";
 		protected static const INVALIDATION_FLAG_MINIMUM_THUMB_FACTORY:String = "mimiumThumbFactory";
 		protected static const INVALIDATION_FLAG_MAXIMUM_THUMB_FACTORY:String = "maximumThumbFactory";
 		
@@ -64,7 +66,7 @@ package feathers.controls
 			return new Button();
 		}
 		
-		protected static function defaultRangeFactory():Button
+		protected static function defaultMiddleThumbFactory():Button
 		{
 			return new Button();
 		}
@@ -85,10 +87,13 @@ package feathers.controls
 		
 		protected var _minimumTouchPointID:int;
 		protected var _maximumTouchPointID:int;
+		protected var _middleTouchPointID:int;
 		protected var _minimumThumbStart:Point;
 		protected var _maximumThumbStart:Point;
+		protected var _middleThumbStart:Point;
 		protected var _minimumTouchStart:Point;
 		protected var _maximumTouchStart:Point;
+		protected var _middleTouchStart:Point;
 		
 		protected var _backgroundFactory:Function;
 		protected var _rangeFactory:Function;
@@ -96,7 +101,7 @@ package feathers.controls
 		protected var _maximumThumbFactory:Function;
 		
 		protected var _background:Button;
-		protected var _range:Button;
+		protected var _middleThumb:Button;
 		protected var _minimumThumb:Button;
 		protected var _maximumThumb:Button;
 		
@@ -106,12 +111,12 @@ package feathers.controls
 		protected var _backgroundProperties:PropertyProxy;
 		
 		protected var _backgroundName:String = DEFAULT_CHILD_NAME_BACKGROUND;
-		protected var _rangeName:String = DEFAULT_CHILD_NAME_BACKGROUND;
+		protected var _middleThumbName:String = DEFAULT_CHILD_NAME_MIDDLE_THUMB;
 		protected var _minimumThumbName:String = DEFAULT_CHILD_NAME_MINIMUM_THUMB;
 		protected var _maximumThumbName:String = DEFAULT_CHILD_NAME_MAXIMUM_THUMB;
 		
 		protected var _customBackgroundName:String;
-		protected var _customRangeName:String;
+		protected var _customMiddleThumbName:String;
 		protected var _customMinimumThumbName:String;
 		protected var _customMaximumThumbName:String;
 		
@@ -122,14 +127,18 @@ package feathers.controls
 			_maximumThumbStart = new Point();
 			_minimumTouchStart = new Point();
 			_maximumTouchStart = new Point();
+			_middleTouchStart = new Point();
+			_middleThumbStart = new Point();
 			_minimumPadding = 0;
 			_maximumPadding = 0;
 			_rangeMinimum = 0;
 			_rangeMaximum = 0;
 			_minimum = 0;
 			_maximum = 0;
+			_step = 0;
 			_minimumTouchPointID = -1;
 			_maximumTouchPointID = -1;
+			_middleTouchPointID = -1;
 			_mode = SLIDER_MODE_FREE;
 			_placeLastThumbOnTop = true;
 			_liveDragging = true;
@@ -140,13 +149,13 @@ package feathers.controls
 		{
 			const stylesInvalid:Boolean = isInvalid(INVALIDATION_FLAG_STYLES);
 			const backgroundInvalid:Boolean = isInvalid(INVALIDATION_FLAG_BACKGROUND_FACTORY);
-			const rangeInvalid:Boolean = isInvalid(INVALIDATION_FLAG_RANGE_FACTORY);
+			const rangeInvalid:Boolean = isInvalid(INVALIDATION_FLAG_MIDDLE_THUMB_FACTORY);
 			const thumbMinimumFactoryInvalid:Boolean = isInvalid(INVALIDATION_FLAG_MINIMUM_THUMB_FACTORY);
 			const thumbMaximumFactoryInvalid:Boolean = isInvalid(INVALIDATION_FLAG_MAXIMUM_THUMB_FACTORY);
 			
 			if (backgroundInvalid)
 				createBackground();
-				
+			
 			if (rangeInvalid)
 				createRange();
 			
@@ -181,17 +190,18 @@ package feathers.controls
 		
 		protected function createRange():void
 		{
-			if (_range)
+			if (_middleThumb)
 			{
-				_range.removeFromParent(true);
-				_range = null;
+				_middleThumb.removeFromParent(true);
+				_middleThumb = null;
 			}
-			const factory:Function = _rangeFactory != null ? _rangeFactory : defaultRangeFactory;
-			const rangeName:String = _customRangeName != null ? _customRangeName : _rangeName;
-			_range = Button(factory());
-			_range.nameList.add(rangeName);
-			_range.keepDownStateOnRollOut = true;
-			addChild(_range);
+			const factory:Function = _rangeFactory != null ? _rangeFactory : defaultMiddleThumbFactory;
+			const rangeName:String = _customMiddleThumbName != null ? _customMiddleThumbName : _middleThumbName;
+			_middleThumb = Button(factory());
+			_middleThumb.nameList.add(rangeName);
+			_middleThumb.keepDownStateOnRollOut = true;
+			_middleThumb.addEventListener(TouchEvent.TOUCH, middle_touchHandler);
+			addChild(_middleThumb);
 		}
 		
 		protected function createThumb(thumb:Button, thumbFactory:Function, defaultName:String, customName:String):Button
@@ -211,14 +221,22 @@ package feathers.controls
 			return thumb;
 		}
 		
-		private function thumb_touchHandler(e:TouchEvent):void
+		override public function get isEnabled():Boolean
 		{
-			if (!isEnabled)
+			var result:Boolean = super.isEnabled;
+			if (!result)
 			{
 				_minimumTouchPointID = -1;
 				_maximumTouchPointID = -1;
-				return;
+				_middleTouchPointID = -1;
 			}
+			return result;
+		}
+		
+		private function thumb_touchHandler(e:TouchEvent):void
+		{
+			if (!isEnabled)
+				return;
 			
 			var touch:Touch;
 			var thumb:Button = Button(e.target);
@@ -234,6 +252,8 @@ package feathers.controls
 				touch = e.getTouch(thumb, null, touchPointID);
 				if (!touch)
 					return;
+				
+				_middleTouchPointID = -1;
 				
 				if (touch.phase == TouchPhase.MOVED)
 				{
@@ -262,6 +282,8 @@ package feathers.controls
 				if (!touch)
 					return;
 				
+				_middleTouchPointID = -1;
+				
 				if (_mode != SLIDER_MODE_FREE && _placeLastThumbOnTop)
 					addChild(thumb);
 				
@@ -282,6 +304,149 @@ package feathers.controls
 				
 				dispatchEventWith(FeathersEventType.BEGIN_INTERACTION);
 			}
+		}
+		
+		private function middle_touchHandler(e:TouchEvent):void
+		{
+			var touch:Touch;
+			var thumb:Button = _middleThumb;
+			if (_middleTouchPointID >= 0)
+			{
+				touch = e.getTouch(thumb, null, _middleTouchPointID);
+				if (!touch)
+					return;
+				
+				if (touch.phase == TouchPhase.MOVED)
+				{
+					touch.getLocation(this, HELPER_POINT);
+						//TODO: range drag
+				}
+				else if (touch.phase == TouchPhase.ENDED)
+				{
+					_middleTouchPointID = -1;
+					_isDragging = false;
+					dispatchEventWith(FeathersEventType.END_INTERACTION);
+					
+					if (!_liveDragging)
+						dispatchEventWith(Event.CHANGE);
+				}
+			}
+			else
+			{
+				touch = e.getTouch(thumb, TouchPhase.BEGAN);
+				if (!touch)
+					return;
+				
+				_minimumTouchPointID = -1;
+				_maximumTouchPointID = -1;
+				
+				touch.getLocation(this, HELPER_POINT);
+				_middleTouchPointID = touch.id;
+				_middleTouchStart.setTo(HELPER_POINT.x, HELPER_POINT.y);
+				_middleThumbStart.setTo(thumb.x, thumb.y);
+				_isDragging = true;
+				dispatchEventWith(FeathersEventType.BEGIN_INTERACTION);
+			}
+		}
+		
+		protected function minimumThumbValue(location:Point):Number
+		{
+			const trackScrollableWidth:Number = actualWidth - _minimumThumb.width - _minimumPadding - _maximumPadding;
+			var overlappingOffset:Number = 0;
+			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
+				overlappingOffset = location.x / (trackScrollableWidth - _maximumThumb.width) * _maximumThumb.width;
+			const xOffset:Number = location.x - _minimumTouchStart.x - _minimumPadding + overlappingOffset;
+			const xPosition:Number = Math.min(Math.max(0, _minimumThumbStart.x + xOffset), trackScrollableWidth);
+			const percentage:Number = xPosition / trackScrollableWidth;
+			var value:Number = _minimum + percentage * (_maximum - _minimum);
+			
+			if (_mode == SLIDER_MODE_LOCK)
+			{
+				if (value > _rangeMaximum)
+					value = _rangeMaximum;
+			}
+			else if (_mode == SLIDER_MODE_PUSH)
+			{
+				if (value > _rangeMaximum)
+					rangeMaximum = value;
+			}
+			return value;
+		}
+		
+		protected function maximumThumbValue(location:Point):Number
+		{
+			const trackScrollableWidth:Number = actualWidth - _maximumThumb.width - _minimumPadding - _maximumPadding;
+			var overlappingOffset:Number = 0;
+			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
+				overlappingOffset = (trackScrollableWidth - location.x + _maximumThumb.width) / trackScrollableWidth * _minimumThumb.width;
+			const xOffset:Number = location.x - _maximumTouchStart.x - _minimumPadding - overlappingOffset;
+			const xPosition:Number = Math.min(Math.max(0, _maximumThumbStart.x + xOffset), trackScrollableWidth);
+			const percentage:Number = xPosition / trackScrollableWidth;
+			var value:Number = _minimum + percentage * (_maximum - _minimum);
+			
+			if (_mode == SLIDER_MODE_LOCK)
+			{
+				if (value < _rangeMinimum)
+					value = _rangeMinimum;
+			}
+			else if (_mode == SLIDER_MODE_PUSH)
+			{
+				if (value < _rangeMinimum)
+					rangeMinimum = value;
+			}
+			return value;
+		}
+		
+		//{ Layout
+		
+		protected function layoutChildren():void
+		{
+			if (_background)
+			{
+				_background.width = actualWidth;
+				_background.height = actualHeight;
+			}
+			layoutThumbs();
+			if (_middleThumb)
+			{
+				if (_minimumThumb.x < _maximumThumb.x)
+				{
+					_middleThumb.x = _minimumThumb.x + _minimumThumb.width;
+					_middleThumb.width = _maximumThumb.x - _minimumThumb.x - _minimumThumb.width;
+				}
+				else
+				{
+					_middleThumb.x = _maximumThumb.x + _maximumThumb.width;
+					_middleThumb.width = _minimumThumb.x - _maximumThumb.x - _maximumThumb.width;
+				}
+			}
+			_middleThumb.y = (actualHeight - _middleThumb.height) / 2;
+			_middleThumb.height = _background.height;
+		
+		}
+		
+		protected function layoutThumbs():void
+		{
+			_minimumThumb.validate();
+			_maximumThumb.validate();
+			
+			var scrollableWidth:Number = actualWidth - _minimumThumb.width - _minimumPadding - _maximumPadding;
+			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
+				scrollableWidth -= _maximumThumb.width;
+			_minimumThumb.x = _minimumPadding + (scrollableWidth * (_rangeMinimum - _minimum) / (_maximum - _minimum));
+			_minimumThumb.y = (actualHeight - _minimumThumb.height) / 2;
+			
+			scrollableWidth = actualWidth - _maximumThumb.width - _minimumPadding - _maximumPadding;
+			var maxThumbPostion:Number;
+			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
+			{
+				scrollableWidth -= _minimumThumb.width;
+				maxThumbPostion = _minimumPadding + (scrollableWidth * (_rangeMaximum - _minimum) / (_maximum - _minimum)) + _minimumThumb.width;
+			}
+			else
+				maxThumbPostion = _minimumPadding + (scrollableWidth * (_rangeMaximum - _minimum) / (_maximum - _minimum));
+			_maximumThumb.x = maxThumbPostion;
+			_maximumThumb.y = (actualHeight - _maximumThumb.height) / 2;
 		}
 		
 		protected function autoSizeIfNeeded():Boolean
@@ -314,99 +479,6 @@ package feathers.controls
 				newHeight = Math.max(newHeight, _maximumThumb.height, _minimumThumb.height);
 			}
 			return setSizeInternal(newWidth, newHeight, false);
-		}
-		
-		protected function minimumThumbValue(location:Point):Number
-		{
-			const trackScrollableWidth:Number = actualWidth - _minimumThumb.width - _minimumPadding - _maximumPadding;
-			var overlappingOffset:Number = 0;
-			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
-				overlappingOffset = location.x / (trackScrollableWidth - _maximumThumb.width) * _maximumThumb.width;
-			const xOffset:Number = location.x - _minimumTouchStart.x - _minimumPadding + overlappingOffset;
-			const xPosition:Number = Math.min(Math.max(0, _minimumThumbStart.x + xOffset), trackScrollableWidth);
-			const percentage:Number = xPosition / trackScrollableWidth;
-			var value:Number = _minimum + percentage * (_maximum - _minimum);
-			
-			if (_mode == SLIDER_MODE_LOCK)
-			{
-				if (value > _rangeMaximum)
-					value = _rangeMaximum;
-			}
-			else if (_mode == SLIDER_MODE_PUSH)
-			{
-				if (value > _rangeMaximum)
-					_rangeMaximum = value;
-			}
-			return value;
-		}
-		
-		protected function maximumThumbValue(location:Point):Number
-		{
-			const trackScrollableWidth:Number = actualWidth - _maximumThumb.width - _minimumPadding - _maximumPadding;
-			var overlappingOffset:Number = 0;
-			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
-				overlappingOffset = (trackScrollableWidth - location.x + _maximumThumb.width) / trackScrollableWidth * _minimumThumb.width;
-			const xOffset:Number = location.x - _maximumTouchStart.x - _minimumPadding - overlappingOffset;
-			const xPosition:Number = Math.min(Math.max(0, _maximumThumbStart.x + xOffset), trackScrollableWidth);
-			const percentage:Number = xPosition / trackScrollableWidth;
-			var value:Number = _minimum + percentage * (_maximum - _minimum);
-			
-			if (_mode == SLIDER_MODE_LOCK)
-			{
-				if (value < _rangeMinimum)
-					value = _rangeMinimum;
-			}
-			else if (_mode == SLIDER_MODE_PUSH)
-			{
-				if (value < _rangeMinimum)
-					_rangeMinimum = value;
-			}
-			return value;
-		}
-		
-		//{ Layout
-		
-		protected function layoutChildren():void
-		{
-			if (_background)
-			{
-				_background.width = actualWidth;
-				_background.height = actualHeight;
-			}
-			
-			layoutThumbs();		
-			
-			if (_range)
-			{
-				_range.x = _minimumThumb.x + _minimumThumb.width;
-				_range.y = (actualHeight - _range.height) / 2;				
-				_range.width = _maximumThumb.x - _minimumThumb.x - _minimumThumb.width;
-				_range.height = _background.height;				
-			}
-		}
-		
-		protected function layoutThumbs():void
-		{
-			_minimumThumb.validate();
-			_maximumThumb.validate();
-			
-			var scrollableWidth:Number = actualWidth - _minimumThumb.width - _minimumPadding - _maximumPadding;
-			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
-				scrollableWidth -= _maximumThumb.width;
-			_minimumThumb.x = _minimumPadding + (scrollableWidth * (_rangeMinimum - _minimum) / (_maximum - _minimum));
-			_minimumThumb.y = (actualHeight - _minimumThumb.height) / 2;
-			
-			scrollableWidth = actualWidth - _maximumThumb.width - _minimumPadding - _maximumPadding;
-			var maxThumbPostion:Number;
-			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
-			{
-				scrollableWidth -= _minimumThumb.width;
-				maxThumbPostion = _minimumPadding + (scrollableWidth * (_rangeMaximum - _minimum) / (_maximum - _minimum)) + _minimumThumb.width;
-			}
-			else
-				maxThumbPostion = _minimumPadding + (scrollableWidth * (_rangeMaximum - _minimum) / (_maximum - _minimum));
-			_maximumThumb.x = maxThumbPostion;
-			_maximumThumb.y = (actualHeight - _maximumThumb.height) / 2;
 		}
 		
 		//} Layout
@@ -556,7 +628,11 @@ package feathers.controls
 		
 		protected function set rangeMinimum(value:Number):void
 		{
-			_rangeMinimum = Math.min(Math.max(value, 0), _maximum);
+			if (_step != 0)			
+				var newValue:Number = roundToNearest(value, _step);							
+			else
+				newValue = value;
+			_rangeMinimum = Math.min(Math.max(newValue, 0), _maximum);
 			
 			invalidate(INVALIDATION_FLAG_DATA);
 			if (_liveDragging || !_isDragging)
@@ -570,7 +646,11 @@ package feathers.controls
 		
 		protected function set rangeMaximum(value:Number):void
 		{
-			_rangeMaximum = Math.min(Math.max(value, 0), _maximum);
+			if (_step != 0)			
+				var newValue:Number = roundToNearest(value, _step);							
+			else
+				newValue = value;
+			_rangeMaximum = Math.min(Math.max(newValue, 0), _maximum);
 			
 			invalidate(INVALIDATION_FLAG_DATA);
 			if (_liveDragging || !_isDragging)
@@ -584,7 +664,10 @@ package feathers.controls
 		
 		public function set step(value:Number):void
 		{
-			_step = value;
+			if(_step <= Math.round(maximum / 2))
+				_step = value;
+			else
+				_step = 0;
 		}
 		
 		public function get minimum():Number

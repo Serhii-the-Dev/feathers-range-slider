@@ -83,7 +83,7 @@ package Core
 			FRangeSlider.minimum = 0;
 			FRangeSlider.max = 50;
 			FRangeSlider.min = 20;			
-			FRangeSlider.step = 1;
+			FRangeSlider.step = 0;
 			FRangeSlider.mode = RangeSlider.SLIDER_MODE_PUSH;
 			FModes.selectedIndex = FRangeSlider.mode;
 			
