@@ -11,7 +11,6 @@ package Core
 	import feathers.system.DeviceCapabilities;
 	import feathers.themes.MetalWorksMobileTheme;
 	import feathers.themes.MetalWorksMobileThemeExtended;
-	import flash.events.FocusEvent;
 	import starling.events.Event;
 	
 	/**
@@ -66,7 +65,7 @@ package Core
 			FTextWidth = 70 * dpiScale;
 			FTextGap = 10 * dpiScale;
 			FMinimum = new TextInput();
-			FMaximum = new TextInput();			
+			FMaximum = new TextInput();
 			FMinimum.text = '50';
 			FMaximum.text = '20';
 			addChild(FMinimum);
@@ -81,30 +80,30 @@ package Core
 			FRangeSlider.addEventListener(Event.CHANGE, OnSliderChange);
 			FRangeSlider.maximum = 100;
 			FRangeSlider.minimum = 0;
-			FRangeSlider.max = 50;
-			FRangeSlider.min = 20;			
+			FRangeSlider.valueMaximum = 50;
+			FRangeSlider.valueMinimum = 20;
 			FRangeSlider.step = 0;
 			FRangeSlider.mode = RangeSlider.SLIDER_MODE_PUSH;
 			FModes.selectedIndex = FRangeSlider.mode;
 			
-			addChild(FRangeSlider);			
+			addChild(FRangeSlider);
 		}
 		
-		private function OnInputFocusOut(e:Event):void 
+		private function OnInputFocusOut(e:Event):void
 		{
 			if (e.target == FMinimum)
-				FRangeSlider.min = int(FMinimum.text);
+				FRangeSlider.valueMinimum = int(FMinimum.text);
 			else
 			{
 				Cc.logch(this, 'Setting max value to ' + FMaximum.text);
-				FRangeSlider.max = int(FMaximum.text);
+				FRangeSlider.valueMaximum = int(FMaximum.text);
 			}
 		}
 		
 		private function OnSliderChange(e:Event):void
 		{
-			FMinimum.text = Math.round(FRangeSlider.min).toString();
-			FMaximum.text = Math.round(FRangeSlider.max).toString();
+			FMinimum.text = Math.round(FRangeSlider.valueMinimum).toString();
+			FMaximum.text = Math.round(FRangeSlider.valueMaximum).toString();
 		}
 		
 		private function OnModeChange(e:Event):void

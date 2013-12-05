@@ -1,6 +1,5 @@
 package feathers.controls
 {
-	import com.junkbyte.console.Cc;
 	import feathers.core.FeathersControl;
 	import feathers.core.IFocusDisplayObject;
 	import feathers.core.PropertyProxy;
@@ -427,8 +426,8 @@ package feathers.controls
 		
 		protected function layoutThumbs():void
 		{
-			_minimumThumb.validate();
-			_maximumThumb.validate();
+			//_minimumThumb.validate();
+			//_maximumThumb.validate();
 			
 			var scrollableWidth:Number = actualWidth - _minimumThumb.width - _minimumPadding - _maximumPadding;
 			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
@@ -525,17 +524,17 @@ package feathers.controls
 		
 		//{ Values	
 		
-		public function get max():Number
+		public function get valueMaximum():Number
 		{
 			return Math.max(_rangeMaximum, _rangeMinimum);
 		}
 		
-		public function get min():Number
+		public function get valueMinimum():Number
 		{
 			return Math.min(_rangeMaximum, _rangeMinimum);
 		}
 		
-		public function set max(value:Number):void
+		public function set valueMaximum(value:Number):void
 		{
 			if (!_maximumThumb || !_minimumThumb)
 			{
@@ -549,7 +548,7 @@ package feathers.controls
 				rangeMinimum = value >= rangeMaximum ? value : rangeMaximum;
 		}
 		
-		public function set min(value:Number):void
+		public function set valueMinimum(value:Number):void
 		{
 			if (!_maximumThumb || !_minimumThumb)
 			{
@@ -628,8 +627,8 @@ package feathers.controls
 		
 		protected function set rangeMinimum(value:Number):void
 		{
-			if (_step != 0)			
-				var newValue:Number = roundToNearest(value, _step);							
+			if (_step != 0)
+				var newValue:Number = roundToNearest(value, _step);
 			else
 				newValue = value;
 			_rangeMinimum = Math.min(Math.max(newValue, 0), _maximum);
@@ -646,8 +645,8 @@ package feathers.controls
 		
 		protected function set rangeMaximum(value:Number):void
 		{
-			if (_step != 0)			
-				var newValue:Number = roundToNearest(value, _step);							
+			if (_step != 0)
+				var newValue:Number = roundToNearest(value, _step);
 			else
 				newValue = value;
 			_rangeMaximum = Math.min(Math.max(newValue, 0), _maximum);
@@ -664,7 +663,7 @@ package feathers.controls
 		
 		public function set step(value:Number):void
 		{
-			if(_step <= Math.round(maximum / 2))
+			if (_step <= Math.round(maximum / 2))
 				_step = value;
 			else
 				_step = 0;
@@ -677,7 +676,11 @@ package feathers.controls
 		
 		public function set minimum(value:Number):void
 		{
-			_minimum = value;
+			if (_minimum != value)
+			{
+				_minimum = value;
+				invalidate(INVALIDATION_FLAG_DATA);
+			}
 		}
 		
 		public function get maximum():Number
@@ -687,7 +690,39 @@ package feathers.controls
 		
 		public function set maximum(value:Number):void
 		{
-			_maximum = value;
+			if (_maximum != value)
+			{
+				_maximum = value;
+				invalidate(INVALIDATION_FLAG_DATA);
+			}
+		}
+		
+		public function get minimumPadding():Number
+		{
+			return _minimumPadding;
+		}
+		
+		public function set minimumPadding(value:Number):void
+		{
+			if (_minimumPadding != value)
+			{
+				_minimumPadding = value;
+				invalidate(INVALIDATION_FLAG_STYLES);
+			}
+		}
+		
+		public function get maximumPadding():Number
+		{
+			return _maximumPadding;
+		}
+		
+		public function set maximumPadding(value:Number):void
+		{
+			if (_maximumPadding != value)
+			{
+				_maximumPadding = value;
+				invalidate(INVALIDATION_FLAG_STYLES);
+			}
 		}
 		
 		//} Values
