@@ -75,6 +75,9 @@ package feathers.controls
 		protected var _maximum:Number;
 		protected var _rangeMinimum:Number;
 		protected var _rangeMaximum:Number;
+		protected var _rangeMiddle:Number;
+		protected var _rangeMinStored:Number;
+		protected var _rangeMaxStored:Number;
 		protected var _step:Number;
 		protected var _isDragging:Boolean;
 		protected var _liveDragging:Boolean;
@@ -132,6 +135,7 @@ package feathers.controls
 			_maximumPadding = 0;
 			_rangeMinimum = 0;
 			_rangeMaximum = 0;
+			_rangeMiddle = 0;
 			_minimum = 0;
 			_maximum = 0;
 			_step = 0;
@@ -199,7 +203,7 @@ package feathers.controls
 			_middleThumb = Button(factory());
 			_middleThumb.nameList.add(rangeName);
 			_middleThumb.keepDownStateOnRollOut = true;
-			_middleThumb.addEventListener(TouchEvent.TOUCH, middle_touchHandler);
+			//_middleThumb.addEventListener(TouchEvent.TOUCH, middle_touchHandler);
 			addChild(_middleThumb);
 		}
 		
@@ -251,8 +255,6 @@ package feathers.controls
 				touch = e.getTouch(thumb, null, touchPointID);
 				if (!touch)
 					return;
-				
-				_middleTouchPointID = -1;
 				
 				if (touch.phase == TouchPhase.MOVED)
 				{
@@ -318,7 +320,7 @@ package feathers.controls
 				if (touch.phase == TouchPhase.MOVED)
 				{
 					touch.getLocation(this, HELPER_POINT);
-						//TODO: range drag
+					calcValues(HELPER_POINT);
 				}
 				else if (touch.phase == TouchPhase.ENDED)
 				{
@@ -339,6 +341,9 @@ package feathers.controls
 				_minimumTouchPointID = -1;
 				_maximumTouchPointID = -1;
 				
+				_rangeMaxStored = valueMaximum;
+				_rangeMinStored = valueMinimum;
+				
 				touch.getLocation(this, HELPER_POINT);
 				_middleTouchPointID = touch.id;
 				_middleTouchStart.setTo(HELPER_POINT.x, HELPER_POINT.y);
@@ -346,6 +351,18 @@ package feathers.controls
 				_isDragging = true;
 				dispatchEventWith(FeathersEventType.BEGIN_INTERACTION);
 			}
+		}
+		
+		private function calcValues(location:Point):void
+		{
+			const commonWidth:Number = _minimumThumb.width + _maximumThumb.width + _middleThumb.width;
+			const trackScrollableWidth:Number = actualWidth - commonWidth - _minimumPadding - _maximumPadding;
+			var xOffset:Number = location.x - _middleTouchStart.x - _minimumPadding - _minimumThumb.width;
+			var xPosition:Number = Math.min(Math.max(0, _middleThumbStart.x + xOffset), trackScrollableWidth);
+			var percentage:Number = xPosition / trackScrollableWidth;
+			_rangeMiddle = _minimum + percentage * (_maximum - _minimum);			
+			
+			invalidate(INVALIDATION_FLAG_DATA);
 		}
 		
 		protected function minimumThumbValue(location:Point):Number
@@ -405,29 +422,48 @@ package feathers.controls
 				_background.width = actualWidth;
 				_background.height = actualHeight;
 			}
-			layoutThumbs();
-			if (_middleThumb)
+			//if (_middleTouchPointID < 0)
 			{
-				if (_minimumThumb.x < _maximumThumb.x)
+				layoutThumbs();
+				if (_middleThumb)
 				{
-					_middleThumb.x = _minimumThumb.x + _minimumThumb.width;
-					_middleThumb.width = _maximumThumb.x - _minimumThumb.x - _minimumThumb.width;
-				}
-				else
-				{
-					_middleThumb.x = _maximumThumb.x + _maximumThumb.width;
-					_middleThumb.width = _minimumThumb.x - _maximumThumb.x - _maximumThumb.width;
+					if (_minimumThumb.x < _maximumThumb.x)
+					{
+						_middleThumb.x = _minimumThumb.x + _minimumThumb.width;
+						_middleThumb.width = _maximumThumb.x - _minimumThumb.x - _minimumThumb.width;
+					}
+					else
+					{
+						_middleThumb.x = _maximumThumb.x + _maximumThumb.width;
+						_middleThumb.width = _minimumThumb.x - _maximumThumb.x - _maximumThumb.width;
+					}
 				}
 			}
+			//else
+			//{
+			//	layoutMiddleThumb();
+			//}
 			_middleThumb.y = (actualHeight - _middleThumb.height) / 2;
 			_middleThumb.height = _background.height;
 		
 		}
 		
+		private function layoutMiddleThumb():void
+		{
+			_middleThumb.validate();
+			
+			var commonWidth:Number = _minimumThumb.width + _maximumThumb.width + _middleThumb.width;
+			var scrollableWidth:Number = actualWidth - commonWidth - _minimumPadding - _maximumPadding;
+			var padding:Number = _minimumPadding + _minimumThumb.width;
+			_middleThumb.x = padding + (scrollableWidth * (_rangeMiddle - _minimum) / (_maximum - _minimum));
+			_maximumThumb.x = _middleThumb.x + _middleThumb.width;
+			_minimumThumb.x = _middleThumb.x - _minimumThumb.width;
+		}
+		
 		protected function layoutThumbs():void
 		{
-			//_minimumThumb.validate();
-			//_maximumThumb.validate();
+			_minimumThumb.validate();
+			_maximumThumb.validate();
 			
 			var scrollableWidth:Number = actualWidth - _minimumThumb.width - _minimumPadding - _maximumPadding;
 			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)

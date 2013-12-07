@@ -78,11 +78,22 @@ package Core
 			
 			FRangeSlider = new RangeSlider();
 			FRangeSlider.addEventListener(Event.CHANGE, OnSliderChange);
-			FRangeSlider.maximum = 100;
+			
+			/*FRangeSlider.maximum = 100;
 			FRangeSlider.minimum = 0;
 			FRangeSlider.valueMaximum = 50;
 			FRangeSlider.valueMinimum = 20;
 			FRangeSlider.step = 0;
+			*/
+			var vMax:Number = 10;
+			var vMin:Number = 0;
+			var vInterval:Number = vInterval = vMax - vMin;			
+			FRangeSlider.minimum = vMin;
+			FRangeSlider.maximum = vMax;
+			FRangeSlider.step = 1;
+			FRangeSlider.valueMinimum = vMin + vInterval * 0.1;
+			FRangeSlider.valueMaximum = vMax - vInterval * 0.1;
+			
 			FRangeSlider.mode = RangeSlider.SLIDER_MODE_PUSH;
 			FModes.selectedIndex = FRangeSlider.mode;
 			
@@ -102,8 +113,8 @@ package Core
 		
 		private function OnSliderChange(e:Event):void
 		{
-			FMinimum.text = Math.round(FRangeSlider.valueMinimum).toString();
-			FMaximum.text = Math.round(FRangeSlider.valueMaximum).toString();
+			FMinimum.text = FRangeSlider.valueMinimum.toString();
+			FMaximum.text = FRangeSlider.valueMaximum.toString();			
 		}
 		
 		private function OnModeChange(e:Event):void
