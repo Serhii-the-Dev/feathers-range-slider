@@ -203,7 +203,7 @@ package feathers.controls
 			_middleThumb = Button(factory());
 			_middleThumb.nameList.add(rangeName);
 			_middleThumb.keepDownStateOnRollOut = true;
-			//_middleThumb.addEventListener(TouchEvent.TOUCH, middle_touchHandler);
+			_middleThumb.addEventListener(TouchEvent.TOUCH, middle_touchHandler);
 			addChild(_middleThumb);
 		}
 		
@@ -320,7 +320,7 @@ package feathers.controls
 				if (touch.phase == TouchPhase.MOVED)
 				{
 					touch.getLocation(this, HELPER_POINT);
-					calcValues(HELPER_POINT);
+					calcRangeValues(HELPER_POINT);
 				}
 				else if (touch.phase == TouchPhase.ENDED)
 				{
@@ -353,14 +353,19 @@ package feathers.controls
 			}
 		}
 		
-		private function calcValues(location:Point):void
+		private function calcRangeValues(location:Point):void
 		{
 			const commonWidth:Number = _minimumThumb.width + _maximumThumb.width + _middleThumb.width;
 			const trackScrollableWidth:Number = actualWidth - commonWidth - _minimumPadding - _maximumPadding;
 			var xOffset:Number = location.x - _middleTouchStart.x - _minimumPadding - _minimumThumb.width;
 			var xPosition:Number = Math.min(Math.max(0, _middleThumbStart.x + xOffset), trackScrollableWidth);
 			var percentage:Number = xPosition / trackScrollableWidth;
-			_rangeMiddle = _minimum + percentage * (_maximum - _minimum);			
+			
+			var rangeValue:Number = _rangeMaxStored - _rangeMinStored;
+			var newMaximum:Number = _maximum - rangeValue;
+			
+			rangeMinimum = _minimum + percentage * (newMaximum - _minimum);
+			rangeMaximum = _minimum + percentage * (newMaximum - _minimum) + rangeValue;
 			
 			invalidate(INVALIDATION_FLAG_DATA);
 		}
@@ -422,7 +427,7 @@ package feathers.controls
 				_background.width = actualWidth;
 				_background.height = actualHeight;
 			}
-			//if (_middleTouchPointID < 0)
+			if (_middleTouchPointID < 0)
 			{
 				layoutThumbs();
 				if (_middleThumb)
@@ -439,10 +444,10 @@ package feathers.controls
 					}
 				}
 			}
-			//else
-			//{
-			//	layoutMiddleThumb();
-			//}
+			else
+			{
+				layoutMiddleThumb();
+			}
 			_middleThumb.y = (actualHeight - _middleThumb.height) / 2;
 			_middleThumb.height = _background.height;
 		
@@ -455,7 +460,9 @@ package feathers.controls
 			var commonWidth:Number = _minimumThumb.width + _maximumThumb.width + _middleThumb.width;
 			var scrollableWidth:Number = actualWidth - commonWidth - _minimumPadding - _maximumPadding;
 			var padding:Number = _minimumPadding + _minimumThumb.width;
-			_middleThumb.x = padding + (scrollableWidth * (_rangeMiddle - _minimum) / (_maximum - _minimum));
+			var diff:Number = _rangeMaxStored - _rangeMinStored;
+			var max:Number = _maximum - diff;
+			_middleThumb.x = padding + (scrollableWidth * (rangeMinimum - _minimum) / (max - _minimum));
 			_maximumThumb.x = _middleThumb.x + _middleThumb.width;
 			_minimumThumb.x = _middleThumb.x - _minimumThumb.width;
 		}
@@ -667,11 +674,14 @@ package feathers.controls
 				var newValue:Number = roundToNearest(value, _step);
 			else
 				newValue = value;
-			_rangeMinimum = Math.min(Math.max(newValue, 0), _maximum);
-			
-			invalidate(INVALIDATION_FLAG_DATA);
-			if (_liveDragging || !_isDragging)
-				dispatchEventWith(Event.CHANGE);
+			newValue = Math.min(Math.max(newValue, 0), _maximum);
+			if (_rangeMinimum != newValue)
+			{
+				_rangeMinimum = newValue;
+				invalidate(INVALIDATION_FLAG_DATA);
+				if (_liveDragging || !_isDragging)
+					dispatchEventWith(Event.CHANGE);
+			}
 		}
 		
 		protected function get rangeMaximum():Number
@@ -685,11 +695,14 @@ package feathers.controls
 				var newValue:Number = roundToNearest(value, _step);
 			else
 				newValue = value;
-			_rangeMaximum = Math.min(Math.max(newValue, 0), _maximum);
-			
-			invalidate(INVALIDATION_FLAG_DATA);
-			if (_liveDragging || !_isDragging)
-				dispatchEventWith(Event.CHANGE);
+			newValue = Math.min(Math.max(newValue, 0), _maximum);
+			if (_rangeMaximum != newValue)
+			{
+				_rangeMaximum = newValue;
+				invalidate(INVALIDATION_FLAG_DATA);
+				if (_liveDragging || !_isDragging)
+					dispatchEventWith(Event.CHANGE);
+			}
 		}
 		
 		public function get step():Number

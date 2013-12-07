@@ -38,28 +38,13 @@ package Core
 			vRadioLayout.horizontalAlign = VerticalLayout.HORIZONTAL_ALIGN_CENTER;
 			vRadioLayout.verticalAlign = VerticalLayout.VERTICAL_ALIGN_MIDDLE;
 			vRadioLayout.gap = 32 * dpiScale;
-			
 			FRadioContainer = new LayoutGroup();
 			FRadioContainer.layout = vRadioLayout;
 			addChild(FRadioContainer);
-			
 			FModes = new ToggleGroup();
-			
-			var radio1:Radio = new Radio();
-			radio1.label = "Free mode";
-			radio1.toggleGroup = FModes;
-			FRadioContainer.addChild(radio1);
-			
-			var radio2:Radio = new Radio();
-			radio2.label = "Push mode";
-			radio2.toggleGroup = FModes;
-			FRadioContainer.addChild(radio2);
-			
-			var radio3:Radio = new Radio();
-			radio3.label = "Lock mode";
-			radio3.toggleGroup = FModes;
-			FRadioContainer.addChild(radio3);
-			
+			AddRadioButton("Free mode");
+			AddRadioButton("Push mode");
+			AddRadioButton("Lock mode");
 			FModes.addEventListener(Event.CHANGE, OnModeChange);
 			
 			FTextWidth = 70 * dpiScale;
@@ -78,26 +63,22 @@ package Core
 			
 			FRangeSlider = new RangeSlider();
 			FRangeSlider.addEventListener(Event.CHANGE, OnSliderChange);
-			
-			/*FRangeSlider.maximum = 100;
+			FRangeSlider.maximum = 100;
 			FRangeSlider.minimum = 0;
 			FRangeSlider.valueMaximum = 50;
 			FRangeSlider.valueMinimum = 20;
-			FRangeSlider.step = 0;
-			*/
-			var vMax:Number = 10;
-			var vMin:Number = 0;
-			var vInterval:Number = vInterval = vMax - vMin;			
-			FRangeSlider.minimum = vMin;
-			FRangeSlider.maximum = vMax;
 			FRangeSlider.step = 1;
-			FRangeSlider.valueMinimum = vMin + vInterval * 0.1;
-			FRangeSlider.valueMaximum = vMax - vInterval * 0.1;
-			
-			FRangeSlider.mode = RangeSlider.SLIDER_MODE_PUSH;
-			FModes.selectedIndex = FRangeSlider.mode;
-			
-			addChild(FRangeSlider);
+			FRangeSlider.mode = FModes.selectedIndex = RangeSlider.SLIDER_MODE_PUSH;
+			addChild(FRangeSlider);			
+		}
+		
+		private function AddRadioButton(ALabel:String):Radio
+		{
+			var vResult:Radio = new Radio();
+			vResult.label = ALabel;
+			vResult.toggleGroup = FModes;
+			FRadioContainer.addChild(vResult);
+			return vResult;
 		}
 		
 		private function OnInputFocusOut(e:Event):void
@@ -114,7 +95,7 @@ package Core
 		private function OnSliderChange(e:Event):void
 		{
 			FMinimum.text = FRangeSlider.valueMinimum.toString();
-			FMaximum.text = FRangeSlider.valueMaximum.toString();			
+			FMaximum.text = FRangeSlider.valueMaximum.toString();
 		}
 		
 		private function OnModeChange(e:Event):void
