@@ -68,8 +68,9 @@ package Core
 			FRangeSlider.valueMaximum = 50;
 			FRangeSlider.valueMinimum = 20;
 			FRangeSlider.step = 1;
+			
 			FRangeSlider.mode = FModes.selectedIndex = RangeSlider.SLIDER_MODE_PUSH;
-			addChild(FRangeSlider);			
+			addChild(FRangeSlider);
 		}
 		
 		private function AddRadioButton(ALabel:String):Radio
@@ -94,8 +95,8 @@ package Core
 		
 		private function OnSliderChange(e:Event):void
 		{
-			FMinimum.text = FRangeSlider.valueMinimum.toString();
-			FMaximum.text = FRangeSlider.valueMaximum.toString();
+			FMinimum.text = (FRangeSlider.valueMinimum).toString();
+			FMaximum.text = (FRangeSlider.valueMaximum).toString();
 		}
 		
 		private function OnModeChange(e:Event):void

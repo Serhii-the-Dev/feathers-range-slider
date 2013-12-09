@@ -95,10 +95,10 @@ package feathers.controls
 		protected var _middleThumbStart:Point;
 		protected var _minimumTouchStart:Point;
 		protected var _maximumTouchStart:Point;
-		protected var _middleTouchStart:Point;
+		protected var _middleTouchStart:Point;		
 		
 		protected var _backgroundFactory:Function;
-		protected var _rangeFactory:Function;
+		protected var _middleThumbFactory:Function;
 		protected var _minimumThumbFactory:Function;
 		protected var _maximumThumbFactory:Function;
 		
@@ -157,57 +157,35 @@ package feathers.controls
 			const thumbMaximumFactoryInvalid:Boolean = isInvalid(INVALIDATION_FLAG_MAXIMUM_THUMB_FACTORY);
 			
 			if (backgroundInvalid)
-				createBackground();
+				_background = createComponent(_background, _backgroundFactory, _backgroundName, _customBackgroundName);
 			
 			if (rangeInvalid)
-				createRange();
+			{
+				_middleThumb = createComponent(_middleThumb, _middleThumbFactory, _middleThumbName, _customMiddleThumbName);
+				_middleThumb.addEventListener(TouchEvent.TOUCH, middle_touchHandler);
+			}				
 			
 			if (thumbMaximumFactoryInvalid)
-				_maximumThumb = createThumb(_maximumThumb, _maximumThumbFactory, _maximumThumbName, _customMaximumThumbName);
+			{
+				_maximumThumb = createComponent(_maximumThumb, _maximumThumbFactory, _maximumThumbName, _customMaximumThumbName);
+				_maximumThumb.addEventListener(TouchEvent.TOUCH, thumb_touchHandler);
+			}
 			
 			if (thumbMinimumFactoryInvalid)
-				_minimumThumb = createThumb(_minimumThumb, _minimumThumbFactory, _minimumThumbName, _customMinimumThumbName);
+			{
+				_minimumThumb = createComponent(_minimumThumb, _minimumThumbFactory, _minimumThumbName, _customMinimumThumbName);
+				_minimumThumb.addEventListener(TouchEvent.TOUCH, thumb_touchHandler);
+			}
 			
 			if (backgroundInvalid || stylesInvalid)
-				refreshBaclgroundStyles();
+				refreshBackgroundStyles();
 			
 			autoSizeIfNeeded();
 			
 			layoutChildren();
 		}
-		
-		protected function createBackground():void
-		{
-			if (_background)
-			{
-				_background.removeFromParent(true);
-				_background = null;
-			}
-			const factory:Function = _backgroundFactory != null ? _backgroundFactory : defaultBackgroundFactory;
-			const backgroundName:String = _customBackgroundName != null ? _customBackgroundName : _backgroundName;
-			_background = Button(factory());
-			_background.nameList.add(backgroundName);
-			_background.keepDownStateOnRollOut = true;
-			addChild(_background);
-		}
-		
-		protected function createRange():void
-		{
-			if (_middleThumb)
-			{
-				_middleThumb.removeFromParent(true);
-				_middleThumb = null;
-			}
-			const factory:Function = _rangeFactory != null ? _rangeFactory : defaultMiddleThumbFactory;
-			const rangeName:String = _customMiddleThumbName != null ? _customMiddleThumbName : _middleThumbName;
-			_middleThumb = Button(factory());
-			_middleThumb.nameList.add(rangeName);
-			_middleThumb.keepDownStateOnRollOut = true;
-			_middleThumb.addEventListener(TouchEvent.TOUCH, middle_touchHandler);
-			addChild(_middleThumb);
-		}
-		
-		protected function createThumb(thumb:Button, thumbFactory:Function, defaultName:String, customName:String):Button
+
+		protected function createComponent(thumb:Button, thumbFactory:Function, defaultName:String, customName:String):Button
 		{
 			if (thumb)
 			{
@@ -218,8 +196,7 @@ package feathers.controls
 			const thumbName:String = customName != null ? customName : defaultName;
 			thumb = Button(factory());
 			thumb.nameList.add(thumbName);
-			thumb.keepDownStateOnRollOut = true;
-			thumb.addEventListener(TouchEvent.TOUCH, thumb_touchHandler);
+			thumb.keepDownStateOnRollOut = true;			
 			addChild(thumb);
 			return thumb;
 		}
@@ -285,7 +262,7 @@ package feathers.controls
 				
 				_middleTouchPointID = -1;
 				
-				if (_mode != SLIDER_MODE_FREE && _placeLastThumbOnTop)
+				if (_placeLastThumbOnTop)
 					addChild(thumb);
 				
 				touch.getLocation(this, HELPER_POINT);
@@ -447,16 +424,13 @@ package feathers.controls
 			else
 			{
 				layoutMiddleThumb();
-			}
+			}			
 			_middleThumb.y = (actualHeight - _middleThumb.height) / 2;
-			_middleThumb.height = _background.height;
-		
+			_middleThumb.height = _background.height;		
 		}
 		
 		private function layoutMiddleThumb():void
 		{
-			_middleThumb.validate();
-			
 			var commonWidth:Number = _minimumThumb.width + _maximumThumb.width + _middleThumb.width;
 			var scrollableWidth:Number = actualWidth - commonWidth - _minimumPadding - _maximumPadding;
 			var padding:Number = _minimumPadding + _minimumThumb.width;
@@ -468,10 +442,7 @@ package feathers.controls
 		}
 		
 		protected function layoutThumbs():void
-		{
-			_minimumThumb.validate();
-			_maximumThumb.validate();
-			
+		{			
 			var scrollableWidth:Number = actualWidth - _minimumThumb.width - _minimumPadding - _maximumPadding;
 			if (!_thumbsOverlapping && _mode != SLIDER_MODE_FREE)
 				scrollableWidth -= _maximumThumb.width;
@@ -506,7 +477,7 @@ package feathers.controls
 				return false;
 			
 			_minimumThumb.validate();
-			_maximumThumb.validate();
+			_maximumThumb.validate();			
 			
 			var newWidth:Number = explicitWidth;
 			var newHeight:Number = explicitHeight;
@@ -540,6 +511,17 @@ package feathers.controls
 		//} Factories
 		
 		//{ Names	
+			
+		public function get customBackgroundName():String 
+		{
+			return _customBackgroundName;
+		}
+		
+		public function set customBackgroundName(value:String):void 
+		{
+			_customBackgroundName = value;
+			invalidate(INVALIDATION_FLAG_BACKGROUND_FACTORY);
+		}
 		
 		public function get customMinimumThumbName():String
 		{
@@ -561,6 +543,17 @@ package feathers.controls
 		{
 			_customMaximumThumbName = value;
 			invalidate(INVALIDATION_FLAG_MAXIMUM_THUMB_FACTORY);
+		}		
+		
+		public function get customMiddleThumbName():String 
+		{
+			return _customMiddleThumbName;
+		}
+		
+		public function set customMiddleThumbName(value:String):void 
+		{
+			_customMiddleThumbName = value;
+			invalidate(INVALIDATION_FLAG_MIDDLE_THUMB_FACTORY);
 		}
 		
 		//} Names
@@ -812,7 +805,7 @@ package feathers.controls
 			invalidate(INVALIDATION_FLAG_STYLES);
 		}
 		
-		protected function refreshBaclgroundStyles():void
+		protected function refreshBackgroundStyles():void
 		{
 			for (var propertyName:String in this._backgroundProperties)
 			{
