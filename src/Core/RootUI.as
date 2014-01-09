@@ -47,7 +47,7 @@ package Core
 			AddRadioButton("Lock mode");
 			FModes.addEventListener(Event.CHANGE, OnModeChange);
 			
-			FTextWidth = 70 * dpiScale;
+			FTextWidth = 160 * dpiScale;
 			FTextGap = 10 * dpiScale;
 			FMinimum = new TextInput();
 			FMaximum = new TextInput();
@@ -63,11 +63,10 @@ package Core
 			
 			FRangeSlider = new RangeSlider();
 			FRangeSlider.addEventListener(Event.CHANGE, OnSliderChange);
-			FRangeSlider.maximum = 100;
-			FRangeSlider.minimum = 0;
-			FRangeSlider.valueMaximum = 50;
-			FRangeSlider.valueMinimum = 20;
-			FRangeSlider.step = 1;
+			FRangeSlider.minimum = 1900;
+			FRangeSlider.maximum = 2000;
+			FRangeSlider.valueMinimum = 1940;
+			FRangeSlider.valueMaximum = 1960;			
 			
 			FRangeSlider.mode = FModes.selectedIndex = RangeSlider.SLIDER_MODE_PUSH;
 			addChild(FRangeSlider);
@@ -95,8 +94,8 @@ package Core
 		
 		private function OnSliderChange(e:Event):void
 		{
-			FMinimum.text = (FRangeSlider.valueMinimum).toString();
-			FMaximum.text = (FRangeSlider.valueMaximum).toString();
+			FMinimum.text = (FRangeSlider.valueMinimum).toFixed(6);
+			FMaximum.text = (FRangeSlider.valueMaximum).toFixed(6);
 		}
 		
 		private function OnModeChange(e:Event):void

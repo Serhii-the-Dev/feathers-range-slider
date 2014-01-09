@@ -663,11 +663,7 @@ package feathers.controls
 		
 		protected function set rangeMinimum(value:Number):void
 		{
-			if (_step != 0)
-				var newValue:Number = roundToNearest(value, _step);
-			else
-				newValue = value;
-			newValue = Math.min(Math.max(newValue, 0), _maximum);
+			var newValue:Number = calculateValue(value);
 			if (_rangeMinimum != newValue)
 			{
 				_rangeMinimum = newValue;
@@ -684,11 +680,7 @@ package feathers.controls
 		
 		protected function set rangeMaximum(value:Number):void
 		{
-			if (_step != 0)
-				var newValue:Number = roundToNearest(value, _step);
-			else
-				newValue = value;
-			newValue = Math.min(Math.max(newValue, 0), _maximum);
+			var newValue:Number = calculateValue(value);
 			if (_rangeMaximum != newValue)
 			{
 				_rangeMaximum = newValue;
@@ -705,10 +697,12 @@ package feathers.controls
 		
 		public function set step(value:Number):void
 		{
-			if (_step <= Math.round(maximum / 2))
+			if (value <= Math.round(maximum / 2))
 				_step = value;
 			else
 				_step = 0;
+			updateValues();
+			invalidate(INVALIDATION_FLAG_DATA);
 		}
 		
 		public function get minimum():Number
@@ -720,8 +714,11 @@ package feathers.controls
 		{
 			if (_minimum != value)
 			{
-				_minimum = value;
+				_minimum = value;	
+				updateValues();
 				invalidate(INVALIDATION_FLAG_DATA);
+				if (_liveDragging || !_isDragging)
+					dispatchEventWith(Event.CHANGE);
 			}
 		}
 		
@@ -735,8 +732,30 @@ package feathers.controls
 			if (_maximum != value)
 			{
 				_maximum = value;
-				invalidate(INVALIDATION_FLAG_DATA);
+				updateValues();								
+				invalidate(INVALIDATION_FLAG_DATA);				
+				if (_liveDragging || !_isDragging)
+					dispatchEventWith(Event.CHANGE);
 			}
+		}
+		
+		protected function updateValues():void
+		{			
+			var newValue:Number = calculateValue(_rangeMinimum);
+			if (_rangeMinimum != newValue)
+				_rangeMinimum = newValue;
+			newValue = calculateValue(_rangeMaximum);
+			if (_rangeMaximum != newValue)
+				_rangeMaximum = newValue;
+		}
+		
+		protected function calculateValue(value:Number):Number
+		{
+			if (_step != 0)
+				var newValue:Number = roundToNearest(value, _step);
+			else
+				newValue = value;
+			return Math.min(Math.max(newValue, _minimum), _maximum);
 		}
 		
 		public function get minimumPadding():Number
