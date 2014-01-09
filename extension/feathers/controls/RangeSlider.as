@@ -332,10 +332,11 @@ package feathers.controls
 		
 		private function calcRangeValues(location:Point):void
 		{
-			const commonWidth:Number = _minimumThumb.width + _maximumThumb.width + _middleThumb.width;
-			const trackScrollableWidth:Number = actualWidth - commonWidth - _minimumPadding - _maximumPadding;
-			if (trackScrollableWidth > 0)
+			const canScroll:Boolean = _rangeMaxStored != _maximum || _rangeMinStored != _minimum;			
+			if (canScroll)
 			{
+				const commonWidth:Number = _minimumThumb.width + _maximumThumb.width + _middleThumb.width;
+				const trackScrollableWidth:Number = actualWidth - commonWidth - _minimumPadding - _maximumPadding;			
 				var xOffset:Number = location.x - _middleTouchStart.x - _minimumPadding - _minimumThumb.width;
 				var xPosition:Number = Math.min(Math.max(0, _middleThumbStart.x + xOffset), trackScrollableWidth);
 				var percentage:Number = xPosition / trackScrollableWidth;
