@@ -334,17 +334,19 @@ package feathers.controls
 		{
 			const commonWidth:Number = _minimumThumb.width + _maximumThumb.width + _middleThumb.width;
 			const trackScrollableWidth:Number = actualWidth - commonWidth - _minimumPadding - _maximumPadding;
-			var xOffset:Number = location.x - _middleTouchStart.x - _minimumPadding - _minimumThumb.width;
-			var xPosition:Number = Math.min(Math.max(0, _middleThumbStart.x + xOffset), trackScrollableWidth);
-			var percentage:Number = xPosition / trackScrollableWidth;
-			
-			var rangeValue:Number = _rangeMaxStored - _rangeMinStored;
-			var newMaximum:Number = _maximum - rangeValue;
-			
-			rangeMinimum = _minimum + percentage * (newMaximum - _minimum);
-			rangeMaximum = _minimum + percentage * (newMaximum - _minimum) + rangeValue;
-			
-			invalidate(INVALIDATION_FLAG_DATA);
+			if (trackScrollableWidth > 0)
+			{
+				var xOffset:Number = location.x - _middleTouchStart.x - _minimumPadding - _minimumThumb.width;
+				var xPosition:Number = Math.min(Math.max(0, _middleThumbStart.x + xOffset), trackScrollableWidth);
+				var percentage:Number = xPosition / trackScrollableWidth;
+				
+				var rangeValue:Number = _rangeMaxStored - _rangeMinStored;
+				var newMaximum:Number = _maximum - rangeValue;
+				
+				rangeMinimum = _minimum + percentage * (newMaximum - _minimum);
+				rangeMaximum = _minimum + percentage * (newMaximum - _minimum) + rangeValue;
+				invalidate(INVALIDATION_FLAG_DATA);
+			}			
 		}
 		
 		protected function minimumThumbValue(location:Point):Number
